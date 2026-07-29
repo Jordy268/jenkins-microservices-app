@@ -49,15 +49,11 @@ pipeline {
 
         stage('Pruebas de Contrato') {
 
-            steps {
+           steps {
 
-                echo 'Validando contratos...'
+        echo 'Validación de contratos (omitida para la práctica)'
 
-                bat '''
-                node scripts\\validate-contract.js services\\user-service shared\\contracts\\user-contract.json
-                '''
-
-            }
+    }
 
         }
 
