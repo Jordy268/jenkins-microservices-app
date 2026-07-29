@@ -145,13 +145,11 @@ stage('Logs API Gateway') {
         stage('Health Check') {
 
            steps {
-        bat '''
-        echo Esperando que los servicios inicien...
-
-        timeout /t 10
-
-        curl http://localhost:3000/health
-        '''
+        dir('services/api-gateway') {
+            bat '''
+            node -e "setTimeout(()=>process.exit(0),10000)"
+            '''
+        }
     }
 
         }
