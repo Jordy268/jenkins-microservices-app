@@ -1,0 +1,5 @@
+# Forzar LF en scripts Bash para que funcionen en Linux / Jenkins
+*.sh text eol=lf
+
+# Manejo automático para todo lo demás
+* text=auto
