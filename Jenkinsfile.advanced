@@ -135,13 +135,14 @@ pipeline {
 
         stage('Health Check') {
 
-            steps {
-
-                bat '''
-                curl http://localhost:3000/health
-                '''
-
-            }
+            stage('Health Check') {
+   steps {
+        bat '''
+        timeout /t 10
+        powershell -Command "Invoke-WebRequest http://localhost:3000/health"
+        '''
+    }
+}
 
         }
 
