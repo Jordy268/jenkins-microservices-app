@@ -14,6 +14,7 @@ const userServiceBreaker = new CircuitBreaker(
             data: req.body,
             headers: req.headers
         });
+
         return response.data;
     },
     {
@@ -22,6 +23,7 @@ const userServiceBreaker = new CircuitBreaker(
         resetTimeout: 10000
     }
 );
+
 
 const productServiceBreaker = new CircuitBreaker(
     async (req, res) => {
@@ -31,6 +33,7 @@ const productServiceBreaker = new CircuitBreaker(
             data: req.body,
             headers: req.headers
         });
+
         return response.data;
     },
     {
@@ -40,6 +43,7 @@ const productServiceBreaker = new CircuitBreaker(
     }
 );
 
+
 // Middleware
 app.use(express.json());
 
@@ -47,6 +51,7 @@ app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
     next();
 });
+
 
 // Health Check
 app.get('/health', (req, res) => {
@@ -59,34 +64,48 @@ app.get('/health', (req, res) => {
     });
 });
 
+
 // User Service
-app.all('/users/*', async (req, res) => {
+app.all('/users/:path(*)', async (req, res) => {
     try {
+
         const result = await userServiceBreaker.fire(req, res);
+
         res.json(result);
+
     } catch (error) {
+
         res.status(503).json({
             error: 'Service Unavailable',
             message: 'User service is currently unavailable'
         });
+
     }
 });
 
+
 // Product Service
-app.all('/products/*', async (req, res) => {
+app.all('/products/:path(*)', async (req, res) => {
     try {
+
         const result = await productServiceBreaker.fire(req, res);
+
         res.json(result);
+
     } catch (error) {
+
         res.status(503).json({
             error: 'Service Unavailable',
             message: 'Product service is currently unavailable'
         });
+
     }
 });
 
+
 // Métricas
 app.get('/metrics', (req, res) => {
+
     res.json({
         uptime: process.uptime(),
         memory: process.memoryUsage(),
@@ -95,7 +114,9 @@ app.get('/metrics', (req, res) => {
             productService: productServiceBreaker.status
         }
     });
+
 });
+
 
 app.listen(port, () => {
     console.log(`🚀 API Gateway running on port ${port}`);

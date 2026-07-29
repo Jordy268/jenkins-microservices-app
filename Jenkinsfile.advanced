@@ -135,15 +135,21 @@ pipeline {
 
         }
 
-
+stage('Logs API Gateway') {
+    steps {
+        bat '''
+        docker logs docker-api-gateway-1
+        '''
+    }
+}
         stage('Health Check') {
 
-            steps {
+           steps {
         bat '''
         echo Esperando que los servicios inicien...
-        ping 127.0.0.1 -n 10 > nul
+        powershell.exe -Command "Start-Sleep -Seconds 10"
 
-        curl http://localhost:3000/health
+        powershell.exe -Command "try { Invoke-WebRequest http://localhost:3000/health -UseBasicParsing } catch { exit 1 }"
         '''
     }
 
@@ -218,40 +224,35 @@ pipeline {
 
 
         always {
+        echo "Guardando logs..."
 
-            echo "Deteniendo contenedores..."
+        bat '''
+        docker ps -a
+        docker logs docker-api-gateway-1 || exit 0
+        docker logs docker-user-service-1 || exit 0
+        docker logs docker-product-service-1 || exit 0
+        '''
 
-            dir('docker') {
-
-                bat '''
-                docker compose -f docker-compose.test.yml down -v
-                '''
-
-            }
-
-
-            cleanWs()
-
+        dir('docker') {
+            bat '''
+            docker compose -f docker-compose.test.yml down -v
+            '''
         }
 
+        cleanWs()
+    }
 
-        success {
+    success {
+        echo "================================"
+        echo "PIPELINE EXITOSO"
+        echo "================================"
+    }
 
-            echo "================================"
-            echo "PIPELINE EXITOSO"
-            echo "================================"
-
-        }
-
-
-        failure {
-
-            echo "================================"
-            echo "PIPELINE FALLÓ"
-            echo "================================"
-
-        }
-
+    failure {
+        echo "================================"
+        echo "PIPELINE FALLÓ"
+        echo "================================"
+    }
 
     }
 
