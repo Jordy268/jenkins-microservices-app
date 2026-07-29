@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+
+  api-gateway:
+    build: ../services/api-gateway
+
+  user-service:
+    build: ../services/user-service
+
+  product-service:
+    build: ../services/product-service
+
+  k6:
+    image: grafana/k6

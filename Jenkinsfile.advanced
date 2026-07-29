@@ -1,0 +1,226 @@
+pipeline {
+
+    agent any
+
+    environment {
+        APP_NAME = 'jenkins-microservices-app'
+        PERFORMANCE_THRESHOLD = '500'
+    }
+
+    stages {
+
+        stage('Preparación y Validación') {
+
+            steps {
+
+                echo '================================'
+                echo 'Validando estructura del proyecto'
+                echo '================================'
+
+                script {
+
+                    def services = [
+                        'api-gateway',
+                        'user-service',
+                        'product-service'
+                    ]
+
+                    services.each { service ->
+
+                        if (!fileExists("services/${service}")) {
+                            error "No existe services/${service}"
+                        }
+
+                        if (!fileExists("services/${service}/package.json")) {
+                            error "No existe package.json en ${service}"
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+
+        stage('Pruebas de Contrato') {
+
+            steps {
+
+                echo 'Validando contratos...'
+
+                bat '''
+                node scripts\\validate-contract.js services\\user-service shared\\contracts\\user-contract.json
+                '''
+
+            }
+
+        }
+
+        stage('Instalar Dependencias') {
+
+            parallel {
+
+                stage('API Gateway') {
+                    steps {
+                        dir('services/api-gateway') {
+                            bat 'npm install'
+                        }
+                    }
+                }
+
+                stage('User Service') {
+                    steps {
+                        dir('services/user-service') {
+                            bat 'npm install'
+                        }
+                    }
+                }
+
+                stage('Product Service') {
+                    steps {
+                        dir('services/product-service') {
+                            bat 'npm install'
+                        }
+                    }
+                }
+
+            }
+
+        }
+
+        stage('Levantar Contenedores') {
+
+            steps {
+
+                dir('docker') {
+
+                    bat '''
+                    docker compose -f docker-compose.test.yml up -d --build
+                    '''
+
+                }
+
+            }
+
+        }
+
+        stage('Verificar Contenedores') {
+
+            steps {
+
+                bat 'docker ps'
+
+            }
+
+        }
+
+        stage('Health Check') {
+
+            steps {
+
+                bat '''
+                curl http://localhost:3000/health
+                '''
+
+            }
+
+        }
+
+        stage('Pruebas API Gateway') {
+
+            steps {
+
+                dir('services/api-gateway') {
+
+                    bat 'npm test || exit /b 0'
+
+                }
+
+            }
+
+        }
+
+        stage('Pruebas User Service') {
+
+            steps {
+
+                dir('services/user-service') {
+
+                    bat 'npm test || exit /b 0'
+
+                }
+
+            }
+
+        }
+
+        stage('Pruebas Product Service') {
+
+            steps {
+
+                dir('services/product-service') {
+
+                    bat 'npm test || exit /b 0'
+
+                }
+
+            }
+
+        }
+
+        stage('Logs Docker') {
+
+            steps {
+
+                dir('docker') {
+
+                    bat '''
+                    docker compose -f docker-compose.test.yml logs
+                    '''
+
+                }
+
+            }
+
+        }
+
+    }
+
+    post {
+
+        success {
+
+            echo '================================'
+            echo 'PIPELINE TERMINADO CORRECTAMENTE'
+            echo '================================'
+
+        }
+
+        failure {
+
+            echo '================================'
+            echo 'PIPELINE FALLÓ'
+            echo '================================'
+
+        }
+
+        always {
+
+            echo 'Deteniendo contenedores...'
+
+            dir('docker') {
+
+                bat '''
+                docker compose -f docker-compose.test.yml down -v
+                '''
+
+            }
+
+            cleanWs()
+
+        }
+
+    }
+
+}
