@@ -147,9 +147,10 @@ stage('Logs API Gateway') {
            steps {
         bat '''
         echo Esperando que los servicios inicien...
-        powershell.exe -Command "Start-Sleep -Seconds 10"
 
-        powershell.exe -Command "try { Invoke-WebRequest http://localhost:3000/health -UseBasicParsing } catch { exit 1 }"
+        timeout /t 10
+
+        curl http://localhost:3000/health
         '''
     }
 
