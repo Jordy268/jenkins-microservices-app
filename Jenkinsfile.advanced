@@ -139,13 +139,13 @@ pipeline {
         stage('Health Check') {
 
             steps {
+        bat '''
+        echo Esperando que los servicios inicien...
+        ping 127.0.0.1 -n 10 > nul
 
-                bat '''
-                timeout /t 10
-                powershell -Command "Invoke-WebRequest http://localhost:3000/health"
-                '''
-
-            }
+        curl http://localhost:3000/health
+        '''
+    }
 
         }
 
@@ -203,13 +203,11 @@ pipeline {
 
         stage('Logs Docker') {
 
-            steps {
-
-                bat '''
-                docker compose -f docker/docker-compose.test.yml logs
-                '''
-
-            }
+           steps {
+        bat '''
+        docker compose -f docker/docker-compose.test.yml logs --tail=100
+        '''
+    }
 
         }
 
