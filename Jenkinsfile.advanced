@@ -2,6 +2,10 @@ pipeline {
 
     agent any
 
+    tools {
+        nodejs 'NodeJS'
+    }
+
     environment {
         APP_NAME = 'jenkins-microservices-app'
         PERFORMANCE_THRESHOLD = '500'
@@ -62,27 +66,45 @@ pipeline {
             parallel {
 
                 stage('API Gateway') {
+
                     steps {
+
                         dir('services/api-gateway') {
+
                             bat 'npm install'
+
                         }
+
                     }
+
                 }
 
                 stage('User Service') {
+
                     steps {
+
                         dir('services/user-service') {
+
                             bat 'npm install'
+
                         }
+
                     }
+
                 }
 
                 stage('Product Service') {
+
                     steps {
+
                         dir('services/product-service') {
+
                             bat 'npm install'
+
                         }
+
                     }
+
                 }
 
             }
