@@ -7,10 +7,10 @@ const port = process.env.PORT || 3000;
 
 // Configuración de circuit breakers
 const userServiceBreaker = new CircuitBreaker(
-    async (req, res) => {
+    async (req) => {
         const response = await axios({
             method: req.method,
-            url: `http://user-service:3001${req.url}`,
+            url: `http://user-service:3001${req.originalUrl}`,
             data: req.body,
             headers: req.headers
         });
@@ -26,10 +26,10 @@ const userServiceBreaker = new CircuitBreaker(
 
 
 const productServiceBreaker = new CircuitBreaker(
-    async (req, res) => {
+    async (req) => {
         const response = await axios({
             method: req.method,
-            url: `http://product-service:3002${req.url}`,
+            url: `http://product-service:3002${req.originalUrl}`,
             data: req.body,
             headers: req.headers
         });
@@ -47,8 +47,10 @@ const productServiceBreaker = new CircuitBreaker(
 // Middleware
 app.use(express.json());
 
+
+// Logger
 app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
     next();
 });
 
@@ -65,15 +67,19 @@ app.get('/health', (req, res) => {
 });
 
 
-// User Service
-app.all('/users/:path(*)', async (req, res) => {
+// ===============================
+// USER SERVICE
+// ===============================
+app.use('/users', async (req, res) => {
     try {
 
-        const result = await userServiceBreaker.fire(req, res);
+        const result = await userServiceBreaker.fire(req);
 
         res.json(result);
 
     } catch (error) {
+
+        console.error("User Service Error:", error.message);
 
         res.status(503).json({
             error: 'Service Unavailable',
@@ -84,15 +90,19 @@ app.all('/users/:path(*)', async (req, res) => {
 });
 
 
-// Product Service
-app.all('/products/:path(*)', async (req, res) => {
+// ===============================
+// PRODUCT SERVICE
+// ===============================
+app.use('/products', async (req, res) => {
     try {
 
-        const result = await productServiceBreaker.fire(req, res);
+        const result = await productServiceBreaker.fire(req);
 
         res.json(result);
 
     } catch (error) {
+
+        console.error("Product Service Error:", error.message);
 
         res.status(503).json({
             error: 'Service Unavailable',
@@ -118,6 +128,7 @@ app.get('/metrics', (req, res) => {
 });
 
 
+// Inicio del servidor
 app.listen(port, () => {
     console.log(`🚀 API Gateway running on port ${port}`);
 });
